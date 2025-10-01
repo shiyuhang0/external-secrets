@@ -201,9 +201,42 @@ func newAuth(ctx context.Context, kube kclient.Client, store esv1.GenericStore, 
 		}
 
 		return credentials, nil
+	case alibabaSpec.Auth.ServiceAccountAuth != nil:
+		credentials, err := newServiceAccountAuth(store, namespace)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Alibaba service account credentials: %w", err)
+		}
+
+		return credentials, nil
 	default:
 		return nil, errors.New("alibaba authentication methods wasn't provided")
 	}
+}
+
+func newServiceAccountAuth(store esv1.GenericStore, namespace string) (credential.Credential, error) {
+	storeSpec := store.GetSpec()
+	alibabaSpec := storeSpec.Provider.Alibaba
+
+	isClusterKind := store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind
+	if isClusterKind {
+		if alibabaSpec.Auth.ServiceAccountAuth.Namespace != nil {
+			namespace = *alibabaSpec.Auth.ServiceAccountAuth.Namespace
+		} else {
+			namespace = ""
+		}
+	}
+
+	provider, err := NewServiceAccountCredentialsProviderBuilder().
+		WithAudiences(alibabaSpec.Auth.ServiceAccountAuth.Audiences).
+		WithNamespace(namespace).
+		WithServiceAccount(alibabaSpec.Auth.ServiceAccountAuth.Name).
+		WithOIDCProviderARN(alibabaSpec.Auth.ServiceAccountAuth.OIDCProviderARN).
+		WithRoleArn(alibabaSpec.Auth.ServiceAccountAuth.RoleARN).
+		Build()
+	if err != nil {
+		return nil, err
+	}
+	return credential.FromCredentialsProvider("service account", provider), nil
 }
 
 func newRRSAAuth(store esv1.GenericStore) (credential.Credential, error) {

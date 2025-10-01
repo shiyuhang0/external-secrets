@@ -26,6 +26,8 @@ type AlibabaAuth struct {
 	SecretRef *AlibabaAuthSecretRef `json:"secretRef,omitempty"`
 	// +optional
 	RRSAAuth *AlibabaRRSAAuth `json:"rrsa,omitempty"`
+	// +optional
+	ServiceAccountAuth *AlibabaServiceAccountAuth `json:"serviceAccount,omitempty"`
 }
 
 // AlibabaAuthSecretRef holds secret references for Alibaba credentials.
@@ -42,6 +44,40 @@ type AlibabaRRSAAuth struct {
 	OIDCTokenFilePath string `json:"oidcTokenFilePath"`
 	RoleARN           string `json:"roleArn"`
 	SessionName       string `json:"sessionName"`
+}
+
+// Authenticate against Alibaba using service account tokens.
+type AlibabaServiceAccountAuth struct {
+	// The name of the ServiceAccount resource being referred to.
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+	Name string `json:"name"`
+
+	// Namespace of the resource being referred to.
+	// Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+	// +optional
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=63
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+	Namespace *string `json:"namespace,omitempty"`
+
+	// Audience specifies the `aud` claim for the service account token
+	// defaults to `sts.aliyuncs.com` if not specified.
+	// +optional
+	Audiences []string `json:"audiences,omitempty"`
+
+	// The OIDCProviderARN is used for authentication
+	// if not specified the controller will use the value of the
+	// ALIBABA_CLOUD_OIDC_PROVIDER_ARN environment variable of the controller pod.
+	// +optional
+	OIDCProviderARN string `json:"oidcProviderArn"`
+
+	// The RoleARN is used for authentication
+	// if not specified the controller will use the value of the
+	// ALIBABA_CLOUD_ROLE_ARN environment variable of the controller pod.
+	// +optional
+	RoleARN string `json:"roleArn"`
 }
 
 // AlibabaProvider configures a store to sync secrets using the Alibaba Secret Manager provider.
